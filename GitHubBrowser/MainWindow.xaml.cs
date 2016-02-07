@@ -28,18 +28,21 @@ namespace GitUserBrowser
         private MainWindowModel model;
         private MainWindowController controller;
 
+        private const int VisibleUsersInGrid = 11;
+
         public MainWindow()
         {
             model = new MainWindowModel();
-            controller = new MainWindowController(model, this);
+            controller = new MainWindowController(model, this, VisibleUsersInGrid);
 
             DataContext = model;
             InitializeComponent();
         }
 
-        private void srchButton_Click(object sender, RoutedEventArgs e)
+        private async void srchButton_Click(object sender, RoutedEventArgs e)
         {
-            controller.Search();            
+            await controller.SearchAsync();
+            await controller.LoadVisibleUserDataAsync(0);
         }
 
         public string GetPassword()
@@ -67,14 +70,10 @@ namespace GitUserBrowser
             UpdateSelectedItems();
         }
 
-        private void UpdateSelectedItems()
+        private async void UpdateSelectedItems()
         {
             List<ScrollViewer> svList = GetVisualChildCollection<ScrollViewer>(listView);
-
-            int beginIdx = (int)svList[0].VerticalOffset;
-            int itemsCount = Math.Min(11, model.SearchResults.Count - beginIdx);
-
-            controller.LoadItemsFull(beginIdx, itemsCount);
+            await controller.LoadVisibleUserDataAsync((int)svList[0].VerticalOffset);
         }
         private static List<T> GetVisualChildCollection<T>(object parent) where T : Visual
         {
@@ -99,9 +98,20 @@ namespace GitUserBrowser
             }
         }
 
-        private void export_To_CSV_Click(object sender, RoutedEventArgs e)
+        private async void export_To_CSV_Click(object sender, RoutedEventArgs e)
         {
-            controller.ExportResultsToCSV();
+            Button b = (Button)sender;
+            b.IsEnabled = false;
+
+            try
+            {
+                await controller.ExportResultsToCSVAsync();
+            }
+            finally
+            {
+                b.IsEnabled = true;
+            }
+            
         }
     }
 }
